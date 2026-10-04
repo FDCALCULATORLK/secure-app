@@ -1,0 +1,6 @@
+{
+  "name": "Private Notes",
+  "description": "Your private notebook. A secure personal notes web app with PIN lock and a premium dark-blue interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

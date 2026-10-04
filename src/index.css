@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-deep: #021327;
+    --bg-primary: #031B36;
+    --bg-surface: #052A52;
+    --bg-surface-elevated: #063B73;
+    --accent-electric: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.25);
+  }
+
+  body {
+    background-color: var(--bg-deep);
+    color: #e2e8f0;
+    min-height: 100vh;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom dark blue scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(3, 27, 54, 0.6);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.2);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.4);
+  }
+}
+
+/* Glass panel preset */
+.glass-panel {
+  background: rgba(5, 42, 82, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  box-shadow: 0 10px 30px -10px rgba(2, 19, 39, 0.7);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(6, 50, 98, 0.75);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 12px 35px -8px rgba(3, 27, 54, 0.8), 0 0 20px rgba(56, 189, 248, 0.12);
+  transform: translateY(-1px);
+}
+
+.glass-input {
+  background: rgba(3, 27, 54, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.15);
+}
+
+/* Electric blue glow button */
+.btn-electric {
+  background: linear-gradient(135deg, #0284c7 0%, #0759A8 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-electric:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border-color: rgba(125, 211, 252, 0.6);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.45);
+}
+
+.btn-electric:active {
+  transform: scale(0.98);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
