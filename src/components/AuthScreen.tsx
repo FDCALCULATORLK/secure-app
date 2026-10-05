@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser, registerUser } from '../authService';
+import { loginUser, registerUser, loginAsGuest } from '../authService';
 
 interface AuthScreenProps {
   onLogin: () => void;
@@ -45,6 +45,20 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await loginAsGuest();
+      onLogin();
+    } catch (e) {
+      console.error(e);
+      setError('Could not start guest session.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#021327] text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -56,7 +70,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
           </h1>
 
           <p className="text-slate-400 mt-2">
-            Your private notes, stored securely in the cloud.
+            Your private notes, protected with PIN lock.
           </p>
         </div>
 
@@ -108,7 +122,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-semibold py-3 transition"
+            className="w-full rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-semibold py-3 transition cursor-pointer"
           >
             {loading
               ? 'Please wait...'
@@ -123,12 +137,23 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
               setIsCreatingAccount((previous) => !previous);
               setError('');
             }}
-            className="w-full mt-4 text-sm text-sky-400 hover:text-sky-300"
+            className="w-full mt-4 text-sm text-sky-400 hover:text-sky-300 cursor-pointer"
           >
             {isCreatingAccount
               ? 'Already have an account? Login'
               : "Don't have an account? Create one"}
           </button>
+
+          <div className="mt-6 pt-5 border-t border-slate-800 text-center">
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={loading}
+              className="text-xs text-slate-400 hover:text-sky-300 transition-colors underline cursor-pointer"
+            >
+              Continue in Offline / Demo Mode
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -1,19 +1,20 @@
 /**
  * NoteEditorModal for creating and editing notes.
- * Uses a dark blue glass panel with folder selection, title input, and content textarea.
+ * Uses a dark blue glass panel with folder selection, date picker, title input, and content textarea.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Folder as FolderIcon, Clock, Type } from 'lucide-react';
+import { X, Check, Folder as FolderIcon, Clock, Type, Calendar as CalendarIcon } from 'lucide-react';
 import { Note, Folder } from '../types';
 
 interface NoteEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (noteData: { title: string; content: string; folder: string }) => void;
+  onSave: (noteData: { title: string; content: string; folder: string; noteDate?: string }) => void;
   initialNote: Note | null;
   folders: Folder[];
   currentActiveFolder: string;
+  initialDate?: string;
 }
 
 export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
@@ -23,10 +24,12 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
   initialNote,
   folders,
   currentActiveFolder,
+  initialDate,
 }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [folder, setFolder] = useState('personal');
+  const [noteDate, setNoteDate] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -37,11 +40,13 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
         setTitle(initialNote.title);
         setContent(initialNote.content);
         setFolder(initialNote.folder);
+        // Default to noteDate or formatted createdAt
+        setNoteDate(initialNote.noteDate || new Date(initialNote.createdAt).toISOString().slice(0, 10));
       } else {
         setTitle('');
         setContent('');
-        // If current active folder is not 'all', default to it, otherwise default to 'personal'
         setFolder(currentActiveFolder === 'all' ? 'personal' : currentActiveFolder);
+        setNoteDate(initialDate || new Date().toISOString().slice(0, 10));
       }
       setErrorMessage(null);
 
@@ -50,7 +55,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
         titleInputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen, initialNote, currentActiveFolder]);
+  }, [isOpen, initialNote, currentActiveFolder, initialDate]);
 
   if (!isOpen) return null;
 
@@ -69,6 +74,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
       title: trimmedTitle || 'Untitled Note',
       content: trimmedContent,
       folder,
+      noteDate: noteDate || undefined,
     });
     onClose();
   };
@@ -119,7 +125,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-sky-200/60 hover:text-white hover:bg-sky-950/60 transition-colors"
+            className="p-1.5 rounded-lg text-sky-200/60 hover:text-white hover:bg-sky-950/60 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -134,23 +140,38 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
             </div>
           )}
 
-          {/* Folder Selector */}
-          <div>
-            <label className="block text-xs font-medium text-sky-300/70 mb-1.5 flex items-center gap-1.5">
-              <FolderIcon className="w-3.5 h-3.5 text-sky-400" />
-              <span>Folder</span>
-            </label>
-            <select
-              value={folder}
-              onChange={(e) => setFolder(e.target.value)}
-              className="w-full sm:w-64 px-3 py-2 text-xs sm:text-sm rounded-xl glass-input cursor-pointer bg-[#031B36]"
-            >
-              {assignableFolders.map((f) => (
-                <option key={f.id} value={f.id} className="bg-[#031B36] text-white">
-                  {f.name}
-                </option>
-              ))}
-            </select>
+          {/* Folder & Date Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-sky-300/70 mb-1.5 flex items-center gap-1.5">
+                <FolderIcon className="w-3.5 h-3.5 text-sky-400" />
+                <span>Folder</span>
+              </label>
+              <select
+                value={folder}
+                onChange={(e) => setFolder(e.target.value)}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl glass-input cursor-pointer bg-[#031B36]"
+              >
+                {assignableFolders.map((f) => (
+                  <option key={f.id} value={f.id} className="bg-[#031B36] text-white">
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-sky-300/70 mb-1.5 flex items-center gap-1.5">
+                <CalendarIcon className="w-3.5 h-3.5 text-sky-400" />
+                <span>Note Date</span>
+              </label>
+              <input
+                type="date"
+                value={noteDate}
+                onChange={(e) => setNoteDate(e.target.value)}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl glass-input cursor-pointer bg-[#031B36] text-white"
+              />
+            </div>
           </div>
 
           {/* Title Input */}
@@ -198,7 +219,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs sm:text-sm font-medium text-sky-200/70 hover:text-white hover:bg-slate-900/40 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs sm:text-sm font-medium text-sky-200/70 hover:text-white hover:bg-slate-900/40 rounded-xl transition-colors cursor-pointer"
             >
               Cancel
             </button>
