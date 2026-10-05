@@ -4,6 +4,9 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from './firebase';
+import { AuthScreen } from './components/AuthScreen';
 import { PinScreen } from './components/PinScreen';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -15,13 +18,16 @@ import { EmptyState } from './components/EmptyState';
 import { StorageService, DEFAULT_FOLDERS } from './utils/storage';
 import { Note, Folder } from './types';
 import { Folder as FolderIcon } from 'lucide-react';
-
+import { getNotes, createNote, updateNote, deleteNote } from './notesService';
 export default function App() {
-  // Authentication & Lock State
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
-  const [hasPinConfigured, setHasPinConfigured] = useState<boolean>(() =>
-    StorageService.hasPin()
-  );
+ // Authentication & Lock State
+const [user, setUser] = useState<User | null>(null);
+const [authLoading, setAuthLoading] = useState(true);
+
+const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+const [hasPinConfigured, setHasPinConfigured] = useState<boolean>(() =>
+  StorageService.hasPin()
+);
 
   // Application Data
   const [notes, setNotes] = useState<Note[]>([]);
@@ -38,16 +44,32 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Load notes once unlocked or on mount
-  const refreshNotes = useCallback(() => {
-    const loadedNotes = StorageService.getNotes();
+ const refreshNotes = useCallback(async () => {
+  if (!user) return;
+
+  try {
+    const loadedNotes = await getNotes(user.uid);
     setNotes(loadedNotes);
-  }, []);
+  } catch (error) {
+    console.error('Failed to load notes from Firebase:', error);
+  }
+}, [user]);
 
   useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    setUser(currentUser);
+    setAuthLoading(false);
+  });
+
+  return unsubscribe;
+}, []);
+
+useEffect(() => {
+  if (user) {
     refreshNotes();
     setHasPinConfigured(StorageService.hasPin());
-  }, [refreshNotes]);
-
+  }
+}, [user, refreshNotes]);
   // Handle successful PIN unlock
   const handleUnlock = () => {
     setIsUnlocked(true);
@@ -70,28 +92,43 @@ export default function App() {
   };
 
   // Save (Create or Update) note
-  const handleSaveNote = (noteData: { title: string; content: string; folder: string }) => {
+  const handleSaveNote = async (
+  noteData: { title: string; content: string; folder: string }
+) => {
+  if (!user) return;
+
+  try {
     if (editingNote) {
-      StorageService.updateNote(editingNote.id, {
+      await updateNote(user.uid, editingNote.id, {
         title: noteData.title,
         content: noteData.content,
         folder: noteData.folder,
       });
     } else {
-      StorageService.createNote({
+      await createNote(user.uid, {
         title: noteData.title,
         content: noteData.content,
         folder: noteData.folder,
       });
     }
-    refreshNotes();
-  };
 
+    await refreshNotes();
+  } catch (error) {
+    console.error('Failed to save note to Firebase:', error);
+  }
+};
   // Delete note
-  const handleConfirmDelete = (noteId: string) => {
-    StorageService.deleteNote(noteId);
+  const handleConfirmDelete = async (noteId: string) => {
+  if (!user) return;
+
+  try {
+    await deleteNote(user.uid, noteId);
     setDeletingNote(null);
-    refreshNotes();
+    await refreshNotes();
+  } catch (error) {
+    console.error('Failed to delete note from Firebase:', error);
+  }
+
   };
 
   // Filter notes by active folder and real-time search query
@@ -119,7 +156,25 @@ export default function App() {
     const found = DEFAULT_FOLDERS.find((f) => f.id === activeFolderId);
     return found ? found.name : 'Notes';
   }, [activeFolderId]);
+  // Firebase is checking whether the user is logged in
+if (authLoading) {
+  return (
+    <div className="min-h-screen bg-[#021327] text-white flex items-center justify-center">
+      <p className="text-sky-400">Loading...</p>
+    </div>
+  );
+}
 
+// No Firebase account is logged in
+if (!user) {
+  return (
+    <AuthScreen
+      onLogin={() => {
+        // Firebase will update the user automatically.
+      }}
+    />
+  );
+}
   // If locked, render PIN screen
   if (!isUnlocked) {
     return (
