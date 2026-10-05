@@ -19,8 +19,12 @@ import { CalendarView } from './components/CalendarView';
 import { ChecklistsView } from './components/ChecklistsView';
 import { TimerView } from './components/TimerView';
 import { SettingsView } from './components/SettingsView';
+import { PrivateVideosView } from './components/PrivateVideosView';
+import { UploadVideoModal } from './components/UploadVideoModal';
+import { VideoPlayerModal } from './components/VideoPlayerModal';
+import { DeleteVideoModal } from './components/DeleteVideoModal';
 import { StorageService, DEFAULT_FOLDERS } from './utils/storage';
-import { Note, Folder, NavigationTab, Checklist, UserSettings } from './types';
+import { Note, Folder, NavigationTab, Checklist, UserSettings, PrivateVideo } from './types';
 import { Folder as FolderIcon } from 'lucide-react';
 import { getNotes, createNote, updateNote, deleteNote } from './notesService';
 import {
@@ -29,6 +33,7 @@ import {
   updateChecklist,
   deleteChecklist,
 } from './checklistService';
+import { getVideos, uploadVideo, deleteVideo } from './videoService';
 
 export default function App() {
   // Authentication & Lock State
@@ -43,9 +48,12 @@ export default function App() {
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<NavigationTab>('notes');
 
-  // Application Data: Notes & Checklists
+  // Application Data: Notes, Checklists & Private Videos
   const [notes, setNotes] = useState<Note[]>([]);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [videos, setVideos] = useState<PrivateVideo[]>([]);
+  const [videosLoading, setVideosLoading] = useState<boolean>(false);
+
   const [activeFolderId, setActiveFolderId] = useState<string>(() =>
     StorageService.getActiveFolder()
   );
@@ -63,6 +71,11 @@ export default function App() {
   const [isChangePinOpen, setIsChangePinOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | undefined>(undefined);
+
+  // Video Modals
+  const [isUploadVideoOpen, setIsUploadVideoOpen] = useState<boolean>(false);
+  const [playingVideo, setPlayingVideo] = useState<PrivateVideo | null>(null);
+  const [deletingVideo, setDeletingVideo] = useState<PrivateVideo | null>(null);
 
   // Load notes once unlocked or on mount
   const refreshNotes = useCallback(async () => {
@@ -88,6 +101,21 @@ export default function App() {
     }
   }, [user]);
 
+  // Load private videos
+  const refreshVideos = useCallback(async () => {
+    if (!user) return;
+
+    setVideosLoading(true);
+    try {
+      const loadedVideos = await getVideos(user.uid);
+      setVideos(loadedVideos);
+    } catch (error) {
+      console.error('Failed to load private videos:', error);
+    } finally {
+      setVideosLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     const unsubscribe = subscribeToAuth((currentUser) => {
       setUser(currentUser);
@@ -101,9 +129,10 @@ export default function App() {
     if (user) {
       refreshNotes();
       refreshChecklists();
+      refreshVideos();
       setHasPinConfigured(StorageService.hasPin());
     }
-  }, [user, refreshNotes, refreshChecklists]);
+  }, [user, refreshNotes, refreshChecklists, refreshVideos]);
 
   // Handle successful PIN unlock
   const handleUnlock = () => {
@@ -111,9 +140,10 @@ export default function App() {
     setHasPinConfigured(true);
     refreshNotes();
     refreshChecklists();
+    refreshVideos();
   };
 
-  // Handle sign out (clear React note state, close modals, redirect to AuthScreen)
+  // Handle sign out (clear React state, close modals, redirect to AuthScreen)
   const handleSignOut = async () => {
     try {
       await logoutUser();
@@ -123,10 +153,14 @@ export default function App() {
     setUser(null);
     setNotes([]);
     setChecklists([]);
+    setVideos([]);
     setIsUnlocked(false);
     setIsEditorOpen(false);
     setEditingNote(null);
     setDeletingNote(null);
+    setIsUploadVideoOpen(false);
+    setPlayingVideo(null);
+    setDeletingVideo(null);
     setIsChangePinOpen(false);
     setIsMobileMenuOpen(false);
     setActiveTab('notes');
@@ -138,6 +172,9 @@ export default function App() {
     setIsEditorOpen(false);
     setIsChangePinOpen(false);
     setDeletingNote(null);
+    setIsUploadVideoOpen(false);
+    setPlayingVideo(null);
+    setDeletingVideo(null);
   };
 
   // Folder selection
@@ -234,6 +271,29 @@ export default function App() {
     }
   };
 
+  // Private Videos CRUD handlers
+  const handleUploadVideo = async (
+    file: File,
+    title: string,
+    onProgress: (percent: number) => void
+  ): Promise<PrivateVideo> => {
+    if (!user) throw new Error('You must be signed in to upload videos.');
+    const uploaded = await uploadVideo(user.uid, file, title, onProgress);
+    await refreshVideos();
+    return uploaded;
+  };
+
+  const handleConfirmDeleteVideo = async (video: PrivateVideo) => {
+    if (!user) return;
+    try {
+      await deleteVideo(user.uid, video);
+      setDeletingVideo(null);
+      await refreshVideos();
+    } catch (error) {
+      console.error('Failed to delete video:', error);
+    }
+  };
+
   // Settings update handler
   const handleUpdateSettings = (newSettings: Partial<UserSettings>) => {
     const updated = { ...settings, ...newSettings };
@@ -322,6 +382,7 @@ export default function App() {
           setEditingNote(null);
           setIsEditorOpen(true);
         }}
+        onUploadVideo={() => setIsUploadVideoOpen(true)}
         onLock={handleLock}
         onChangePin={() => setIsChangePinOpen(true)}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -458,12 +519,23 @@ export default function App() {
             />
           )}
 
-          {/* View 4: Timer View */}
+          {/* View 4: Focus Timer View */}
           {activeTab === 'timer' && (
             <TimerView alarmSoundEnabled={settings.timerAlarmSound} />
           )}
 
-          {/* View 5: Settings View */}
+          {/* View 5: Private Videos View */}
+          {activeTab === 'videos' && (
+            <PrivateVideosView
+              videos={videos}
+              isLoading={videosLoading}
+              onOpenUpload={() => setIsUploadVideoOpen(true)}
+              onPlayVideo={(v) => setPlayingVideo(v)}
+              onDeleteVideo={(v) => setDeletingVideo(v)}
+            />
+          )}
+
+          {/* View 6: Settings View */}
           {activeTab === 'settings' && (
             <SettingsView
               userEmail={user?.email}
@@ -493,7 +565,7 @@ export default function App() {
         initialDate={selectedCalendarDate}
       />
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Note Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(deletingNote)}
         note={deletingNote}
@@ -505,6 +577,28 @@ export default function App() {
       <ChangePinModal
         isOpen={isChangePinOpen}
         onClose={() => setIsChangePinOpen(false)}
+      />
+
+      {/* Upload Video Modal */}
+      <UploadVideoModal
+        isOpen={isUploadVideoOpen}
+        onClose={() => setIsUploadVideoOpen(false)}
+        onUpload={handleUploadVideo}
+      />
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        isOpen={Boolean(playingVideo)}
+        video={playingVideo}
+        onClose={() => setPlayingVideo(null)}
+      />
+
+      {/* Delete Video Confirmation Modal */}
+      <DeleteVideoModal
+        isOpen={Boolean(deletingVideo)}
+        video={deletingVideo}
+        onClose={() => setDeletingVideo(null)}
+        onConfirm={handleConfirmDeleteVideo}
       />
     </div>
   );

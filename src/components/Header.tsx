@@ -1,6 +1,6 @@
 /**
  * Top Navigation Header for Private Notes
- * Features brand title, search bar, active tab navigation, new note CTA,
+ * Features brand title, search bar, active tab navigation, new note / upload CTA,
  * lock button, and change PIN / logout options.
  */
 
@@ -17,7 +17,9 @@ import {
   Calendar,
   CheckSquare,
   Timer,
+  Film,
   Settings,
+  Upload,
 } from 'lucide-react';
 import { NavigationTab } from '../types';
 
@@ -25,6 +27,7 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onNewNote: () => void;
+  onUploadVideo?: () => void;
   onLock: () => void;
   onChangePin: () => void;
   isMobileMenuOpen: boolean;
@@ -39,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   onSearchChange,
   onNewNote,
+  onUploadVideo,
   onLock,
   onChangePin,
   isMobileMenuOpen,
@@ -53,8 +57,17 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-3.5 h-3.5" /> },
     { id: 'checklists', label: 'Checklists', icon: <CheckSquare className="w-3.5 h-3.5" /> },
     { id: 'timer', label: 'Timer', icon: <Timer className="w-3.5 h-3.5" /> },
+    { id: 'videos', label: 'Videos', icon: <Film className="w-3.5 h-3.5" /> },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-3.5 h-3.5" /> },
   ];
+
+  const handleCtaClick = () => {
+    if (activeTab === 'videos' && onUploadVideo) {
+      onUploadVideo();
+    } else {
+      onNewNote();
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 w-full glass-panel border-b border-sky-500/20 bg-[#031B36]/85 backdrop-blur-xl">
@@ -120,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search notes..."
+                placeholder={activeTab === 'videos' ? 'Search videos...' : 'Search notes...'}
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl glass-input placeholder-sky-200/40 text-white"
               />
               {searchQuery && (
@@ -137,15 +150,25 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right: Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* New Note Button */}
+            {/* Context-aware CTA Button */}
             <button
               type="button"
-              onClick={onNewNote}
+              onClick={handleCtaClick}
               className="btn-electric px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-medium text-white flex items-center gap-1.5 cursor-pointer shadow-md"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New Note</span>
-              <span className="sm:hidden">New</span>
+              {activeTab === 'videos' ? (
+                <>
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Upload Video</span>
+                  <span className="sm:hidden">Upload</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">New Note</span>
+                  <span className="sm:hidden">New</span>
+                </>
+              )}
             </button>
 
             {/* Change PIN Button */}

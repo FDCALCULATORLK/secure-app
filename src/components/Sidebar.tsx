@@ -14,6 +14,7 @@ import {
   Calendar,
   CheckSquare,
   Timer,
+  Film,
   Settings,
   Lock,
   LogOut,
@@ -74,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
     { id: 'checklists', label: 'Checklists', icon: <CheckSquare className="w-4 h-4" /> },
     { id: 'timer', label: 'Timer', icon: <Timer className="w-4 h-4" /> },
+    { id: 'videos', label: 'Videos', icon: <Film className="w-4 h-4" /> },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
   ];
 

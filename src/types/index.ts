@@ -38,7 +38,18 @@ export interface Checklist {
   updatedAt: number;
 }
 
-export type NavigationTab = 'notes' | 'calendar' | 'checklists' | 'timer' | 'settings';
+export interface PrivateVideo {
+  id: string;
+  title: string;
+  storagePath: string;
+  downloadUrl: string;
+  size: number;
+  mimeType: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type NavigationTab = 'notes' | 'calendar' | 'checklists' | 'timer' | 'videos' | 'settings';
 
 export interface UserSettings {
   defaultFolder: string;

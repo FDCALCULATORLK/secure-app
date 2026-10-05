@@ -3,12 +3,13 @@
  * Handles storage of notes, checklists, PIN configuration, settings, and folder preferences.
  */
 
-import { Note, Folder, Checklist, UserSettings } from '../types';
+import { Note, Folder, Checklist, UserSettings, PrivateVideo } from '../types';
 
 const STORAGE_KEYS = {
   NOTES: 'private_notes_data_v1',
   CHECKLISTS: 'private_notes_checklists_v1',
   SETTINGS: 'private_notes_settings_v1',
+  VIDEOS: 'private_notes_videos_v1',
   PIN_HASH: 'private_notes_pin_v1',
   ACTIVE_FOLDER: 'private_notes_active_folder_v1',
   LOCK_STATE: 'private_notes_locked_v1',
@@ -305,5 +306,34 @@ export const StorageService = {
     } catch (e) {
       console.error('Failed to save settings', e);
     }
+  },
+
+  // --- Videos Operations (Fallback / Local Cache) ---
+  getVideos(): PrivateVideo[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.VIDEOS);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error('Failed to read videos from localStorage', e);
+      return [];
+    }
+  },
+
+  saveVideos(videos: PrivateVideo[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.VIDEOS, JSON.stringify(videos));
+    } catch (e) {
+      console.error('Failed to save videos to localStorage', e);
+    }
+  },
+
+  deleteVideo(id: string): boolean {
+    const list = this.getVideos();
+    const filtered = list.filter((v) => v.id !== id);
+    if (filtered.length === list.length) return false;
+    this.saveVideos(filtered);
+    return true;
   },
 };
